@@ -96,6 +96,7 @@ class PillarVFE(VFETemplate):
         # voxel_features, voxel_num_points, coords = batch_dict['voxels'], batch_dict['voxel_num_points'], batch_dict['voxel_coords']
         lidar_voxel_features, lidar_voxel_num_points, lidar_coords = batch_dict['lidar_voxels'], batch_dict['lidar_voxel_num_points'], batch_dict['lidar_voxel_coords']
         radar_voxel_features, radar_voxel_num_points, radar_coords = batch_dict['radar_voxels'], batch_dict['radar_voxel_num_points'], batch_dict['radar_voxel_coords']
+        # voxel_features = torch.cat((), )
         # points_mean = voxel_features[:, :, :3].sum(dim=1, keepdim=True) / voxel_num_points.type_as(voxel_features).view(-1, 1, 1)
         lidar_points_mean = lidar_voxel_features[:, :, :3].sum(dim=1, keepdim=True) / lidar_voxel_num_points.type_as(lidar_voxel_features).view(-1, 1, 1)
         radar_points_mean = radar_voxel_features[:, :, :3].sum(dim=1, keepdim=True) / radar_voxel_num_points.type_as(radar_voxel_features).view(-1, 1, 1)
@@ -154,18 +155,21 @@ class PillarVFE(VFETemplate):
         # features *= mask
         lidar_features *= lidar_mask
         radar_features *= radar_mask
+
+        features = torch.cat((lidar_features, radar_features), 0)
+
+        for pfn in self.pfn_layers:
+            features = pfn(features)
+        features = features.squeeze()
         # for pfn in self.pfn_layers:
-        #     features = pfn(features)
-        # features = features.squeeze()
-        for pfn in self.pfn_layers:
-            lidar_features = pfn(lidar_features)
-        lidar_features = lidar_features.squeeze()
-        for pfn in self.pfn_layers:
-            radar_features = pfn(radar_features)
-        radar_features = radar_features.squeeze()
-        # batch_dict['pillar_features'] = features
-        batch_dict['lidar_pillar_features'] = lidar_features
-        batch_dict['radar_pillar_features'] = radar_features
+        #     lidar_features = pfn(lidar_features)
+        # lidar_features = lidar_features.squeeze()
+        # for pfn in self.pfn_layers:
+        #     radar_features = pfn(radar_features)
+        # radar_features = radar_features.squeeze()
+        batch_dict['pillar_features'] = features
+        # batch_dict['lidar_pillar_features'] = lidar_features
+        # batch_dict['radar_pillar_features'] = radar_features
         # batch_dict['pillar_features'] = torch.cat((lidar_features, radar_features), 0)
-        # batch_dict['voxel_coords'] = torch.cat((lidar_coords, radar_coords), 0)
+        batch_dict['voxel_coords'] = torch.cat((lidar_coords, radar_coords), 0)
         return batch_dict
